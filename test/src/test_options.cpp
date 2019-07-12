@@ -30,7 +30,7 @@ struct option_benchmark : public gauge::time_benchmark
         return time;
     }
 
-    void get_options(gauge::po::variables_map& options)
+    void get_options(cxxopts::ParseResult& options)
     {
         auto symbols = options["symbols"].as<std::vector<uint32_t>>();
         auto symbol_size = options["symbol_size"].as<std::vector<uint32_t>>();
@@ -78,33 +78,26 @@ protected:
 
 BENCHMARK_OPTION(basic_options)
 {
-    gauge::po::options_description options;
+    auto parser = gauge::runner::instance().option_parser();
 
     auto default_symbols =
-        gauge::po::value<std::vector<uint32_t>>()->
-        default_value({16, 32}, "")->
-        multitoken();
+        cxxopts::value<std::vector<uint32_t>>()->default_value("16,32");
 
     auto default_symbol_size =
-        gauge::po::value<std::vector<uint32_t>>()->
-        default_value({1600}, "")->
-        multitoken();
+        cxxopts::value<std::vector<uint32_t>>()->default_value("1600");
 
     auto default_types =
-        gauge::po::value<std::vector<std::string>>()->
-        default_value({"encoder", "decoder"}, "")->
-        multitoken();
+        cxxopts::value<std::vector<std::string>>()->
+        default_value("encoder,decoder");
 
-    options.add_options()
-    ("symbols", default_symbols, "Set the number of symbols");
+    parser.add_options()
+    ("symbols", "Set the number of symbols", default_symbols);
 
-    options.add_options()
-    ("symbol_size", default_symbol_size, "Set the symbol size in bytes");
+    parser.add_options()
+    ("symbol_size", "Set the symbol size in bytes", default_symbol_size);
 
-    options.add_options()
-    ("type", default_types, "Set type [encoder|decoder]");
-
-    gauge::runner::instance().register_options(options);
+    parser.add_options()
+    ("type", "Set type [encoder|decoder]", default_types);
 }
 
 BENCHMARK_F(option_benchmark, options, basic, 1);

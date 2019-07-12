@@ -27,7 +27,7 @@ public:
         std::generate(m_vector.begin(), m_vector.end(), rand);
     }
 
-    void get_options(gauge::po::variables_map& options)
+    void get_options(cxxopts::ParseResult& options)
     {
         // The options specified are available by overriding the
         // get_options() function and using the option name and
@@ -49,18 +49,13 @@ public:
 // details on how to do it in the manual for that library.
 BENCHMARK_OPTION(array_size)
 {
-    gauge::po::options_description options;
-
-    std::vector<int> size = {10U, 40U};
+    auto parser = gauge::runner::instance().option_parser();
 
     auto default_size =
-        gauge::po::value<std::vector<int> >()->default_value(
-            size, "")->multitoken();
+        cxxopts::value<std::vector<int>>()->default_value("10,40");
 
-    options.add_options()
-    ("array_size", default_size, "Set bit array size");
-
-    gauge::runner::instance().register_options(options);
+    parser.add_options()
+    ("array_size", "Set bit array size", default_size);
 }
 
 // Counting bits set, Brian Kernighan's way

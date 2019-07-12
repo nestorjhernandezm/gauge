@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <boost/program_options.hpp>
+#include <cxxopts.hpp>
 
 #include <vector>
 #include <memory>
@@ -16,8 +16,6 @@
 
 namespace gauge
 {
-namespace po = boost::program_options;
-
 /// The gauge benchmark runner. Responsible for
 /// invoking the registered benchmarks.
 class runner
@@ -49,7 +47,7 @@ public:
 
     /// Run all the benchmarks registered with the gauge benchmark
     /// runner
-    static void run_benchmarks(int argc = 0, const char* argv[] = 0);
+    static void run_benchmarks(int argc = 0, char* argv[] = 0);
 
     /// Registers an unique id for each benchmark type. All benchmarks
     /// call this function once to get their id.
@@ -75,7 +73,10 @@ public:
     }
 
     /// Stores the registered options with the runner
-    void register_options(const po::options_description& options);
+    cxxopts::Options& option_parser();
+
+    /// Returns the parsed program options
+    cxxopts::ParseResult& options();
 
     /// Adds a new benchmark
     // void add_benchmark(uint32_t id, benchmark_ptr benchmark);
@@ -92,13 +93,13 @@ public:
     /// parameters specified. Exceptions are not handled.
     /// @param argc for the program
     /// @param argv for the program
-    void run_unsafe(int argc = 0, const char* argv[] = 0);
+    void run_unsafe(int argc = 0, char* argv[] = 0);
 
     /// Start a new benchmark runner using the commandline
     /// parameters specified.
     /// @param argc for the program
     /// @param argv for the program
-    void run(int argc = 0, const char* argv[] = 0);
+    void run(int argc = 0, char* argv[] = 0);
 
     /// Run all the benchmarks
     void run_all();

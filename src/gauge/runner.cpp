@@ -3,6 +3,8 @@
 //
 // Distributed under the "BSD License". See the accompanying LICENSE.rst file.
 
+#include "runner.hpp"
+
 #include <cassert>
 #include <cstdlib>
 #include <ctime>
@@ -11,8 +13,6 @@
 #include <limits>
 #include <vector>
 
-#include <boost/program_options.hpp>
-
 #include "console_printer.hpp"
 #include "csv_printer.hpp"
 #include "json_printer.hpp"
@@ -20,10 +20,24 @@
 #include "stdout_printer.hpp"
 #include "results.hpp"
 
-#include "runner.hpp"
-
 namespace gauge
 {
+// This wrapper allows us to store the cxxopts::ParseResult in a shared_ptr
+struct parse_result_wrapper
+{
+    parse_result_wrapper(cxxopts::Options& options, int argc, char** argv) :
+        m_results(options.parse(argc, argv))
+    { }
+
+    cxxopts::ParseResult& results()
+    {
+        return m_results;
+    }
+
+    cxxopts::ParseResult m_results;
+};
+
+
 struct runner::impl
 {
     /// Benchmark container
@@ -42,11 +56,11 @@ struct runner::impl
     /// Test case map
     testcase_map m_testcases;
 
-    /// The available program options
-    boost::program_options::options_description m_options_description;
+    /// Parser for program options
+    cxxopts::Options m_option_parser { "gauge" };
 
-    /// Parsed program options
-    po::variables_map m_options;
+    /// The parsed program options
+    std::shared_ptr<parse_result_wrapper> m_options;
 
     /// The currently active benchmark
     benchmark_ptr m_current_benchmark;
@@ -83,19 +97,24 @@ void runner::add_default_printers()
         std::make_shared<gauge::stdout_printer>());
 }
 
-void runner::run_benchmarks(int argc, const char* argv[])
+void runner::run_benchmarks(int argc, char* argv[])
 {
     runner& run = instance();
     run.run(argc, argv);
 }
 
-void runner::register_options(const po::options_description& options)
+cxxopts::Options& runner::option_parser()
 {
     assert(m_impl);
 
-    const auto& opt = options.options();
-    for (const auto& o: opt)
-        m_impl->m_options_description.add(o);
+    return m_impl->m_option_parser;
+}
+
+cxxopts::ParseResult& runner::options()
+{
+    assert(m_impl);
+
+    return m_impl->m_options->results();
 }
 
 uint32_t runner::register_id()
@@ -126,7 +145,7 @@ runner::benchmark_ptr runner::current_benchmark()
     return m_impl->m_current_benchmark;
 }
 
-void runner::run(int argc, const char* argv[])
+void runner::run(int argc, char* argv[])
 {
     try
     {
@@ -139,62 +158,57 @@ void runner::run(int argc, const char* argv[])
     }
 }
 
-void runner::run_unsafe(int argc, const char* argv[])
+void runner::run_unsafe(int argc, char* argv[])
 {
     assert(m_impl);
 
-    po::options_description options("Gauge");
-
-    options.add_options()
+    m_impl->m_option_parser.add_options()
     ("help", "produce help message")
     ("print_tests", "print testcases")
     ("print_benchmarks", "print benchmarks")
     ("result_filter",
-     po::value<std::vector<std::string> >()->multitoken(),
      "Filter which results should be stored "
      "for example ./benchmark --result_filter=time multiple filters "
      "can be a comma separated list of filters e.g. "
-     "--result_filter=time throughput")
+     "--result_filter=time throughput",
+     cxxopts::value<std::vector<std::string>>())
     ("gauge_filter",
-     po::value<std::vector<std::string> >()->multitoken(),
      "Filter which test-cases or benchmarks to run based on their name "
      "for example ./benchmark --gauge_filter=MyTest.* or "
      "--gauge_filter=*.MyBenchmark or even --gauge_filter=*.* "
      "Multiple filters can also be specified e.g. "
-     "--gauge_filter=MyTest.one MyTest.two")
-    ("runs", po::value<uint32_t>(),
+     "--gauge_filter=MyTest.one MyTest.two",
+     cxxopts::value<std::vector<std::string>>())
+    ("runs",
      "Sets the number of runs to complete. Overrides the "
-     "settings specified in the benchmark ex. --runs=50")
-    ("warmup_time", po::value<double>()->default_value(2.0),
+     "settings specified in the benchmark ex. --runs=50",
+     cxxopts::value<uint32_t>())
+    ("warmup_time",
      "Set the CPU warm-up time in seconds before starting the first benchmark. "
      "This should avoid unfavorable results for the first few benchmarks "
-     "due to the CPU power-saving mechanisms, e.g. --warmup_time=5.0")
+     "due to the CPU power-saving mechanisms, e.g. --warmup_time=5.0",
+     cxxopts::value<double>()->default_value("2.0"))
     ("add_column",
-     po::value<std::vector<std::string> >()->multitoken(),
      "Add a column to the test results, this can be used to "
      "add custom information to the result files "
      "./benchmark --add_column cpu=i7 "
-     "\"date=Monday 1st June 2021\"")
+     "\"date=Monday 1st June 2021\"",
+     cxxopts::value<std::vector<std::string>>())
     ("dry_run",
      "Initializes the benchmark without running it. This is useful to "
      "check whether the right command-line arguments have been passed "
      "to the benchmark executable.");
 
-    options.add(m_impl->m_options_description);
+    m_impl->m_options = std::make_shared<parse_result_wrapper>(
+        m_impl->m_option_parser, argc, argv);
 
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, options), vm);
-    po::notify(vm);
-
-    m_impl->m_options = vm;
-
-    if (m_impl->m_options.count("help"))
+    if (options().count("help"))
     {
-        std::cout << options << std::endl;
+        std::cout << m_impl->m_option_parser.help() << std::endl;
         return;
     }
 
-    if (m_impl->m_options.count("print_tests"))
+    if (options().count("print_tests"))
     {
         for (const auto& testcase : m_impl->m_testcases)
         {
@@ -204,7 +218,7 @@ void runner::run_unsafe(int argc, const char* argv[])
         return;
     }
 
-    if (m_impl->m_options.count("print_benchmarks"))
+    if (options().count("print_benchmarks"))
     {
         for (const auto& testcase : m_impl->m_testcases)
         {
@@ -217,10 +231,9 @@ void runner::run_unsafe(int argc, const char* argv[])
         return;
     }
 
-    if (m_impl->m_options.count("add_column"))
+    if (options().count("add_column"))
     {
-        auto v = m_impl->m_options["add_column"].as<
-                 std::vector<std::string> >();
+        auto v = options()["add_column"].as<std::vector<std::string> >();
         for (const auto& s : v)
         {
             parse_add_column(s);
@@ -231,9 +244,9 @@ void runner::run_unsafe(int argc, const char* argv[])
     // the actual benchmarks. This should avoid unfavorable results for the
     // first few benchmarks, especially on mobile CPUs with aggressive
     // power-saving mechanisms.
-    double warmup_time = m_impl->m_options["warmup_time"].as<double>();
+    double warmup_time = options()["warmup_time"].as<double>();
     // The warm-up phase makes no sense for a dry run
-    if (m_impl->m_options.count("dry_run") == 0)
+    if (options().count("dry_run") == 0)
     {
         time_t start = time(0);
         // Continuously query the current time and compare with the start time
@@ -245,7 +258,7 @@ void runner::run_unsafe(int argc, const char* argv[])
     // Deliver possible options to printers and start them
     for (auto& printer: m_impl->m_printers)
     {
-        printer->set_options(m_impl->m_options);
+        printer->set_options(options());
     }
 
     // Notify all printers that we are starting
@@ -255,10 +268,9 @@ void runner::run_unsafe(int argc, const char* argv[])
     }
     // Check whether we should run all tests or whether we
     // should use a filter
-    if (m_impl->m_options.count("gauge_filter"))
+    if (options().count("gauge_filter"))
     {
-        auto f = m_impl->m_options["gauge_filter"]
-                 .as<std::vector<std::string>>();
+        auto f = options()["gauge_filter"].as<std::vector<std::string>>();
         run_all_filters(f);
     }
     else
@@ -440,7 +452,7 @@ void runner::run_benchmark_configurations(benchmark_ptr benchmark)
     assert(benchmark);
     assert(m_impl);
 
-    benchmark->get_options(m_impl->m_options);
+    benchmark->get_options(options());
 
     if (benchmark->has_configurations())
     {
@@ -463,7 +475,7 @@ void runner::run_benchmark(benchmark_ptr benchmark)
     assert(benchmark);
     assert(m_impl);
 
-    if (m_impl->m_options.count("dry_run"))
+    if (options().count("dry_run"))
     {
         return;
     }
@@ -488,9 +500,9 @@ void runner::run_benchmark(benchmark_ptr benchmark)
 
     uint32_t runs = 0;
 
-    if (m_impl->m_options.count("runs"))
+    if (options().count("runs"))
     {
-        runs = m_impl->m_options["runs"].as<uint32_t>();
+        runs = options()["runs"].as<uint32_t>();
     }
     else
     {
@@ -539,9 +551,9 @@ void runner::run_benchmark(benchmark_ptr benchmark)
     }
 
     // Clean out unwanted results
-    if (m_impl->m_options.count("result_filter"))
+    if (options().count("result_filter"))
     {
-        auto f = m_impl->m_options["result_filter"].as<
+        auto f = options()["result_filter"].as<
                  std::vector<std::string>>();
 
         for (auto& i : f)

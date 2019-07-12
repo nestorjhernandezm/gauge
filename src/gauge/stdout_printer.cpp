@@ -25,18 +25,15 @@ stdout_printer::stdout_printer() :
     m_formatters.insert(std::make_pair(
         "python", std::shared_ptr<tables::format>(new tables::python_format())));
 
-    gauge::po::options_description options;
+    auto parser = gauge::runner::instance().option_parser();
 
-    options.add_options()(
-        "stdout_formatter",
-        po::value<std::string>()->default_value(""),
-        "The format to use for the stdout printer");
-
-    gauge::runner::instance().register_options(options);
+    parser.add_options()
+    ("stdout_formatter", "The format to use for the stdout printer",
+     cxxopts::value<std::string>()->default_value(""));
 }
 
-void stdout_printer::benchmark_result(const benchmark& info,
-                                      const tables::table& results)
+void stdout_printer::benchmark_result(
+    const benchmark& info, const tables::table& results)
 {
     tables::table output = results;
     if (info.has_configurations())
@@ -59,13 +56,14 @@ void stdout_printer::end()
     std::cout << std::endl;
 }
 
-void stdout_printer::set_options(const po::variables_map& options)
+void stdout_printer::set_options(const cxxopts::ParseResult& options)
 {
     printer::set_options(options);
     if (m_enabled)
     {
         m_format_key =
             options["stdout_formatter"].as<formatter_map::key_type>();
+
         if (!m_formatters.count(m_format_key))
         {
             throw std::runtime_error("stdout printer: '" + m_format_key +

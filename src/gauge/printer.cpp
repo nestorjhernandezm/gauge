@@ -21,14 +21,11 @@ printer::printer(const std::string& name, bool enabled) :
     m_name(name),
     m_enabled(enabled)
 {
-    gauge::po::options_description options;
+    auto parser = gauge::runner::instance().option_parser();
 
-    options.add_options()(
-        ("use_" + m_name).c_str(),
-        po::value<bool>()->default_value(m_enabled),
-        ("Use the " + m_name + " printer").c_str());
-
-    gauge::runner::instance().register_options(options);
+    parser.add_options()
+    ("use_" + m_name, "Use the " + m_name + " printer",
+     cxxopts::value<bool>()->default_value(m_enabled ? "1" : "0"));
 }
 
 bool printer::is_enabled() const
@@ -36,7 +33,7 @@ bool printer::is_enabled() const
     return m_enabled;
 }
 
-void printer::set_options(const po::variables_map& options)
+void printer::set_options(const cxxopts::ParseResult& options)
 {
     m_enabled = options["use_" + m_name].as<bool>();
 }

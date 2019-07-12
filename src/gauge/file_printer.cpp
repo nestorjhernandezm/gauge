@@ -23,16 +23,14 @@ file_printer::file_printer(const std::string& name,
     printer(name), m_filename_option(name + "_file")
 {
     // Add the filename option for this printer
-    gauge::po::options_description options;
+    auto parser = gauge::runner::instance().option_parser();
 
     auto default_filename_value =
-        gauge::po::value<std::string>()->default_value(default_filename);
+        cxxopts::value<std::string>()->default_value(default_filename);
 
-    options.add_options()
-    (m_filename_option.c_str(), default_filename_value,
-     ("Set the output filename of the " + name + " printer").c_str());
-
-    gauge::runner::instance().register_options(options);
+    parser.add_options()
+    (m_filename_option, "Set the output filename of the " + name + " printer",
+     default_filename_value);
 }
 
 void file_printer::benchmark_result(const benchmark& info,
@@ -59,7 +57,7 @@ void file_printer::end()
     result_file.close();
 }
 
-void file_printer::set_options(const po::variables_map& options)
+void file_printer::set_options(const cxxopts::ParseResult& options)
 {
     printer::set_options(options);
     m_filename = options[m_filename_option].as<std::string>();

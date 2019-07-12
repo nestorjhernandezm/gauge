@@ -32,8 +32,8 @@ public:
     /// Create a new stdout printer
     stdout_printer();
 
-    /// @see printer::set_options(po::variables_map&);
-    void set_options(const po::variables_map& options);
+    /// @see printer::set_options(cxxopts::ParseResult&);
+    void set_options(const cxxopts::ParseResult& options);
 
     /// @see printer::benchmark_result(const benchmark&, const table&)
     void benchmark_result(const benchmark& info,

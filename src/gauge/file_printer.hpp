@@ -37,8 +37,8 @@ public:
     /// @see printer::end()
     virtual void end();
 
-    /// @see printer::set_options(po::variables_map&);
-    virtual void set_options(const po::variables_map& options);
+    /// @see printer::set_options(cxxopts::ParseResult&);
+    virtual void set_options(const cxxopts::ParseResult& options);
 
 public:
 

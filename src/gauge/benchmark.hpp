@@ -6,7 +6,7 @@
 #pragma once
 
 #include <boost/any.hpp>
-#include <boost/program_options.hpp>
+#include <cxxopts.hpp>
 
 #include <tables/table.hpp>
 
@@ -19,10 +19,7 @@
 
 namespace gauge
 {
-
-namespace po = boost::program_options;
-
-/// Base class for all benchmark.
+/// Base class for all benchmarks
 class benchmark
 {
 public:
@@ -60,7 +57,7 @@ public:
     }
 
     /// Add options to the available commandline arguments
-    virtual void get_options(po::variables_map& options)
+    virtual void get_options(cxxopts::ParseResult& options)
     {
         (void) options;
     }

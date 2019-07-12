@@ -7,7 +7,7 @@
 
 #include <gauge/gauge.hpp>
 
-int main(int argc, const char* argv[])
+int main(int argc, char* argv[])
 {
     srand((uint32_t)time(0));
 

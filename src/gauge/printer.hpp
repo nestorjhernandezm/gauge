@@ -5,18 +5,15 @@
 
 #pragma once
 
-#include <tables/table.hpp>
+#include <cxxopts.hpp>
 
-#include <boost/program_options.hpp>
+#include <tables/table.hpp>
 
 #include "benchmark.hpp"
 #include "results.hpp"
 
 namespace gauge
 {
-
-namespace po = boost::program_options;
-
 /// Progress printer interface. To provide a custom
 /// Result printer create a sub-class of this interface
 /// and add it to gauge using:
@@ -38,7 +35,7 @@ public:
     bool is_enabled() const;
 
     /// Add options to the available commandline arguments
-    virtual void set_options(const po::variables_map& options);
+    virtual void set_options(const cxxopts::ParseResult& options);
 
     /// Called when the benchmark program is started
     virtual void start()
