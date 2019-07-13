@@ -23,7 +23,7 @@ file_printer::file_printer(const std::string& name,
     printer(name), m_filename_option(name + "_file")
 {
     // Add the filename option for this printer
-    auto parser = gauge::runner::instance().option_parser();
+    auto& parser = gauge::runner::instance().option_parser();
 
     auto default_filename_value =
         cxxopts::value<std::string>()->default_value(default_filename);

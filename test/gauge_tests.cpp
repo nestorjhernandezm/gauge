@@ -14,7 +14,8 @@ TEST(test_gauge, run_benchmarks)
 {
     // Dummy arguments for gauge::runner
     int argc = 1;
-    char* argv[] = { "program" };
+    char program[] = "program";
+    char* argv[] = { program };
 
     gauge::runner::add_default_printers();
     gauge::runner::run_benchmarks(argc, argv);

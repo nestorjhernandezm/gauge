@@ -21,7 +21,7 @@ printer::printer(const std::string& name, bool enabled) :
     m_name(name),
     m_enabled(enabled)
 {
-    auto parser = gauge::runner::instance().option_parser();
+    auto& parser = gauge::runner::instance().option_parser();
 
     parser.add_options()
     ("use_" + m_name, "Use the " + m_name + " printer",

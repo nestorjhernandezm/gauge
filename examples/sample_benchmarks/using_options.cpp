@@ -49,7 +49,7 @@ public:
 // details on how to do it in the manual for that library.
 BENCHMARK_OPTION(array_size)
 {
-    auto parser = gauge::runner::instance().option_parser();
+    auto& parser = gauge::runner::instance().option_parser();
 
     auto default_size =
         cxxopts::value<std::vector<int>>()->default_value("10,40");

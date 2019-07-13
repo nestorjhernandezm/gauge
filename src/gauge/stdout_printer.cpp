@@ -25,7 +25,7 @@ stdout_printer::stdout_printer() :
     m_formatters.insert(std::make_pair(
         "python", std::shared_ptr<tables::format>(new tables::python_format())));
 
-    auto parser = gauge::runner::instance().option_parser();
+    auto& parser = gauge::runner::instance().option_parser();
 
     parser.add_options()
     ("stdout_formatter", "The format to use for the stdout printer",

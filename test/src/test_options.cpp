@@ -78,7 +78,7 @@ protected:
 
 BENCHMARK_OPTION(basic_options)
 {
-    auto parser = gauge::runner::instance().option_parser();
+    auto& parser = gauge::runner::instance().option_parser();
 
     auto default_symbols =
         cxxopts::value<std::vector<uint32_t>>()->default_value("16,32");
